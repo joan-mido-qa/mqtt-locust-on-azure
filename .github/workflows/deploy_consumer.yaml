@@ -1,0 +1,60 @@
+---
+name: Deploy Consumer
+
+on:
+  workflow_dispatch:
+    inputs:
+      aci-name:
+        description: Azure Container Instance Name.
+        required: true
+      aci-region:
+        type: choice
+        description: Azure Container Instance Region.
+        required: true
+        options:
+        - West Europe
+        - North Europe
+      eventhub-name:
+        description: Azure Eventhub Name.
+        required: true
+      eventhub-connection-string:
+        description: Azure Eventhub Connection String.
+        required: true
+      eventhub-consumer-group:
+        description: Azure Eventhub Consumer Group.
+        required: true
+      storage-connection-string:
+        description: Blob Storage Connection String.
+        required: true
+
+
+jobs:
+  deploy:
+    name: 'Deploy Partitions: ${{ matrix.partition }}'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        partition: [0, 1, 2, 3]
+    steps:
+    - name: Azure Login
+      uses: Azure/login@v1
+      with:
+        creds: '{"clientId":"${{ secrets.CLIENT_ID }}","clientSecret":"${{ secrets.CLIENT_SECRET }}","subscriptionId":"${{ secrets.SUBSCRIPTION_ID }}","tenantId":"${{
+          secrets.TENANT_ID }}"}'
+
+    - name: Deploy to Azure Container Instances
+      uses: azure/aci-deploy@v1
+      with:
+        resource-group: ${{ secrets.RESOURCE_GROUP }}
+        dns-name-label: ${{ inputs.aci-name }}-${{ matrix.partition }}
+        image: ghcr.io/eventhub-consumer:latest
+        registry-login-server: ghcr.io
+        registry-username: ${{ github.actor }}
+        registry-password: ${{ secrets.GITHUB_TOKEN }}
+        name: ${{ inputs.aci-name }}-${{ matrix.partition }}
+        location: ${{ inputs.aci-region }}
+        cpu: 1
+        memory: 1
+        secure-environment-variables: INFLUXDB_HOST=${{ secrets.INFLUXDB_HOST }} INFLUXDB_TOKEN=${{ secrets.INFLUXDB_TOKEN }} INFLUXDB_ORG=${{ secrets.INFLUXDB_ORG
+          }} EVENTHUB_CONNECTION_STRING=${{ inputs.eventhub-connection-string }} CONSUMER_GROUP=${{ inputs.eventhub-consumer-group }} EVENTHUB_NAME=${{
+          inputs.eventhub-name }} STORAGE_CONNECTION_STRING=${{ inputs.storage-connection-string }} NUM_PARTITION=${{ matrix.partition }} TOTAL_PARTITION=4

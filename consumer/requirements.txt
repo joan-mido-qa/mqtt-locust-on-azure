@@ -1,0 +1,4 @@
+influxdb-client[async]==1.34.0
+pandas==1.5.1
+azure-eventhub==5.10.1
+azure-eventhub-checkpointstoreblob-aio==1.1.4
