@@ -40,6 +40,8 @@ async def write_events(host: str, token: str, org: str) -> None:
                 .set_index("_time")
             )
 
+            # Add a UUID to not override equal time entries
+
             delays["uuid"] = str(uuid4())
             delays["delay_ms"] = delays["delay_ms"].astype(str)
 
@@ -74,7 +76,7 @@ async def process_batch(data: list[EventData]) -> None:
                     b"x-opt-enqueued-time", None
                 )
 
-                # Filter test run data by ID using Grafana variables
+                # Filter Test Data by ID using Grafana Variables
 
                 events.add(
                     id=info["run_id"],

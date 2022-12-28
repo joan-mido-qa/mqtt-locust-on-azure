@@ -1,0 +1,132 @@
+---
+name: Run Locust On Azure
+
+on:
+  workflow_dispatch:
+    inputs:
+      run-time:
+        description: Stop after the specified amount of time, e.g. (300s, 20m, 3h, 1h30m, etc.).
+        required: true
+        type: string
+      spawn-rate:
+        description: The rate per second in which users are spawned.
+        required: true
+        type: string
+      num-users:
+        description: Number of concurrent Locust users.
+        required: true
+        type: string
+      mqtt-url:
+        description: MQTT Broker URL.
+        required: true
+        type: string
+
+jobs:
+  deploy-master:
+    name: Deploy Master
+    runs-on: ubuntu-latest
+    outputs:
+      workers: ${{ steps.workers.outputs.matrix }}
+      run-id: ${{ steps.run.outputs.id }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Date and Time
+      run: echo "NOW=$(date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_ENV
+
+    - name: Workers Number
+      env:
+        NUM_USERS: ${{ inputs.num-users }}
+      run: |
+        echo "WORKERS=$(( ($NUM_USERS + 499) / 500 ))" >> $GITHUB_ENV
+
+    - name: Azure Login
+      uses: Azure/login@v1
+      with:
+        creds: '{"clientId":"${{ secrets.CLIENT_ID }}","clientSecret":"${{ secrets.CLIENT_SECRET }}","subscriptionId":"${{ secrets.SUBSCRIPTION_ID }}","tenantId":"${{
+          secrets.TENANT_ID }}"}'
+
+    - name: Deploy to Azure Container Instances
+      uses: azure/aci-deploy@v1
+      with:
+        resource-group: ${{ secrets.RESOURCE_GROUP }}
+        dns-name-label: locust-master
+        image: ghcr.io/locust-on-azure:latest
+        registry-login-server: ghcr.io
+        registry-username: ${{ github.actor }}
+        registry-password: ${{ secrets.GITHUB_TOKEN }}
+        name: locust-master
+        location: West Europe
+        cpu: 1
+        memory: 1
+        os-type: Linux
+        ip-address: Public
+        restart-policy: Never
+        ports: 5557
+        protocol: TCP
+        command-line: locust
+        environment-variables: RUN_ID=${{ env.NOW }} LOCUST_LOCUSTFILE=mqtt_/locustfile.py LOCUST_HEADLESS=true LOCUST_USERS=${{ inputs.num-users }} LOCUST_SPAWN_RATE=${{
+          inputs.spawn-rate }} LOCUST_RUN_TIME=${{ inputs.run-time }} LOCUST_LOGFILE=locust/logs/logs-${{ env.NOW }}.log LOCUST_HTML=locust/stats/index-${{
+          env.NOW }}.html LOCUST_HOST=${{ inputs.mqtt-url }} LOCUST_EXPECT_WORKERS=${{env.WORKERS }} LOCUST_MODE_MASTER=true
+        azure-file-volume-account-key: ${{secrets.STORAGE_ACCOUNT_KEY}}
+        azure-file-volume-account-name: ${{secrets.STORAGE_ACCOUNT_NAME}}
+        azure-file-volume-mount-path: /home/locust/locust
+        azure-file-volume-share-name: locust
+
+    - name: Workers Matrix
+      id: workers
+      run: |
+        matrix=($(seq 1 $WORKERS))
+        echo $matrix
+        echo "::set-output name=matrix::$(jq --compact-output --null-input '$ARGS.positional' --args -- ${matrix[@]})"
+
+    - name: Workers Run ID
+      env:
+        RUN_ID: ${{ env.NOW }}
+      id: run
+      run: |
+        echo "::set-output name=id::$RUN_ID"
+
+  deploy-worker:
+    name: Deploy Worker ${{ matrix.worker }}
+    runs-on: ubuntu-latest
+    needs: deploy-master
+    strategy:
+      matrix:
+        worker: ${{ fromJson(needs.deploy-master.outputs.workers) }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Azure Login
+      uses: Azure/login@v1
+      with:
+        creds: '{"clientId":"${{ secrets.CLIENT_ID }}","clientSecret":"${{ secrets.CLIENT_SECRET }}","subscriptionId":"${{ secrets.SUBSCRIPTION_ID }}","tenantId":"${{
+          secrets.TENANT_ID }}"}'
+
+    - name: Deploy to Azure Container Instances
+      uses: azure/aci-deploy@v1
+      with:
+        resource-group: qa
+        dns-name-label: locust-worker-${{ matrix.worker }}
+        image: ghcr.io/locust-on-azure:latest
+        registry-login-server: ghcr.io
+        registry-username: ${{ github.actor }}
+        registry-password: ${{ secrets.GITHUB_TOKEN }}
+        name: locust-worker-${{ matrix.worker }}
+        location: West Europe
+        cpu: 1
+        memory: 1
+        os-type: Linux
+        ip-address: Public
+        restart-policy: Never
+        ports: 8089
+        protocol: TCP
+        command-line: locust
+        environment-variables: RUN_ID=${{ needs.deploy-master.outputs.run-id }} LOCUST_LOCUSTFILE=mqtt_/locustfile.py LOCUST_MASTER_NODE_HOST=locust-master.westeurope.azurecontainer.io
+          LOCUST_MODE_WORKER=true
+        azure-file-volume-account-key: ${{secrets.STORAGE_ACCOUNT_KEY}}
+        azure-file-volume-account-name: ${{secrets.STORAGE_ACCOUNT_NAME}}
+        azure-file-volume-mount-path: /home/locust/locust
+        azure-file-volume-share-name: locust
