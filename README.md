@@ -1,16 +1,22 @@
 # MQTT Locust on Azure
 
-This repository contains an example of how to use [Locust](https://locust.io/) to test an IoT system. The solution uses [Azure Container Instances](https://azure.microsoft.com/en-us/products/container-instances/) to run Locust in distributed mode.
+This repository is a framework example to test an IoT system performance using [Locust](https://locust.io/). The framework uses [Azure Container Instances](https://azure.microsoft.com/en-us/products/container-instances/) to execute Locust in distributed mode.
 
 Each device uses the Paho-MQTT client to publish telemetries to the MQTT Broker. The Consumer reads the outgoing messages from the [Azure Eventhub](https://azure.microsoft.com/es-es/products/event-hubs/#overview) and uploads the aggregated statistics to a time-series database [InfluxDB](https://www.influxdata.com/).
 
 Finally, [Grafana](https://grafana.com/) reads the aggregated statistics to display the final dashboard with the test results.
 
-<img src="assets/test-architecture.png" width="600" style="display: block; margin: 50px auto"/>
+<br/>
+<br/>
+<p align="center">
+    <img src="assets/test-architecture.png" width="550"/>
+</p>
+<br/>
+<br/>
 
 # Producer
 
-The Producer wraps the [Locust](https://locust.io/) User class with the [Paho-MQTT Client](https://github.com/eclipse/paho.mqtt.python) to use the MQTT protocol and be able to publish telemetries.
+The Producer wraps the [Locust](https://locust.io/) User class with the [Paho-MQTT Client](https://github.com/eclipse/paho.mqtt.python) to publish telemetries via the MQTT protocol.
 
 ## Install
 
@@ -33,11 +39,17 @@ $ locust -f producer/locustfile.py --headless -u 1 -r 1 -t 2m -H test.mqtt.com
 
 ## Azure Run
 
-Create an Azure Storage account with a file share named locust. Inside the file share create two directories: stats and logs.
+Create an Azure Storage account with a file share named locust. Inside the file share, create two directories: stats and logs.
 
 Dispatch the [Run Locust On Azure](https://github.com/joan-mido-qa/mqtt-locust-on-azure/actions/workflows/run_azure.yaml) workflow to deploy the Producer to [Azure Container Instances](https://azure.microsoft.com/en-us/products/container-instances/).
 
-<img src="assets/aci-architecture.png" width="400" style="display: block; margin: 35px auto"/>
+<br/>
+<br/>
+<p align="center">
+    <img src="assets/aci-architecture.png" width="350"/>
+</p>
+<br/>
+<br/>
 
 ## Release
 
@@ -45,7 +57,7 @@ Uncomment the **cd.yaml** workflow to release the producer docker.
 
 # Consumer
 
-The Consumer receives the [Azure Eventhub](https://azure.microsoft.com/es-es/products/event-hubs/#overview) outgoing messages, aggregates the events statistics and dumps the data into the [InfluxDB](https://www.influxdata.com/).
+The Consumer receives the [Azure Eventhub](https://azure.microsoft.com/es-es/products/event-hubs/#overview) outgoing messages, aggregates the events statistics, and dumps the data into the [InfluxDB](https://www.influxdata.com/).
 
 ## Install
 
@@ -81,13 +93,19 @@ Run the [Deploy Consumer](https://github.com/joan-mido-qa/mqtt-locust-on-azure/a
 
 Import the JSON file from the Grafana folder. [Grafana](https://grafana.com/) uses [InfluxDB](https://www.influxdata.com/) to aggregate the statistics and measure the event ingestion delay time (ms) and the count of the EventHub outgoing messages.
 
-Locust uses a self-developed plugin to dump into InfluxDb the number of telemetries and devies.
+Locust uses a self-developed plugin to dump into InfluxDb the number of telemetries and devices. The following image shows the final result using the plug-in, but the JSON file only contains the EventHub results.
 
-<img src="assets/grafana-report.png" width="600" style="display: block; margin: 35px auto"/>
+<br/>
+<br/>
+<p align="center">
+    <img src="assets/grafana-report.png" width="550"/>
+</p>
+<br/>
+<br/>
 
 ### Event Ingestion Delay Time (ms)
 
-The ingestion delay time is measured as the event enqueue time minus the event sent time. Each telemetry has its own send timestamp.
+The ingestion delay time is measured as the event enqueue time minus the event sent time. Each telemetry has its send timestamp.
 
 ### Received Telemetries
 
