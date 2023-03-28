@@ -143,12 +143,6 @@ class MqttClient(Client):
             self._out_packet.appendleft(packet)
             eventmask = selectors.EVENT_WRITE | eventmask
 
-        if self._sockpairR is None:
-            sel.register(self._sock, eventmask)
-        else:
-            sel.register(self._sock, eventmask)
-            sel.register(self._sockpairR, selectors.EVENT_READ)
-
         pending_bytes = 0
         if hasattr(self._sock, "pending"):
             pending_bytes = self._sock.pending()
@@ -157,6 +151,12 @@ class MqttClient(Client):
             timeout = 0.0
 
         try:
+            if self._sockpairR is None:
+                sel.register(self._sock, eventmask)
+            else:
+                sel.register(self._sock, eventmask)
+                sel.register(self._sockpairR, selectors.EVENT_READ)
+
             events = sel.select(timeout)
 
         except TypeError:
