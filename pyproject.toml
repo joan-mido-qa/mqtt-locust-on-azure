@@ -1,0 +1,35 @@
+[tool.ruff]
+select = [
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "F", # pyflakes
+    "C", # flake8-comprehensions
+    "B", # flake8-bugbear
+    "RSE", # flake8-raise
+    "SIM", # flake8-simplify
+    "PIE", # flake8-pie
+    "PYI", # flake8-pyi
+    "Q", # flake8-quotes
+    "INP", # flake8-no-pep-420
+    "PT", # flake8-pytest-style
+    "RUF" # ruff rules
+]
+ignore = [
+    "E501", # line too long, handled by black
+    "B905",
+    "B020",
+    "B024",
+    "B027",
+    "C901",
+    "SIM117",
+    "SIM114",
+    "SIM103",
+    "SIM102",
+    "PT004",
+    "PT011",
+    "PT012",
+    "PT017"
+]
+
+[tool.black]
+line-length = 120

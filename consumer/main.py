@@ -72,9 +72,7 @@ async def process_batch(data: list[EventData]) -> None:
 
             if event.enqueued_time and event.raw_amqp_message.annotations:
 
-                enqueues_ts: float = event.raw_amqp_message.annotations.get(
-                    b"x-opt-enqueued-time", None
-                )
+                enqueues_ts: float = event.raw_amqp_message.annotations.get(b"x-opt-enqueued-time", None)
 
                 # Filter Test Data by ID using Grafana Variables
 
@@ -93,9 +91,7 @@ async def process_batch(data: list[EventData]) -> None:
         events_queue.append(df)
 
 
-async def on_event_batch(
-    partition_context: PartitionContext, events: list[EventData]
-) -> None:
+async def on_event_batch(partition_context: PartitionContext, events: list[EventData]) -> None:
 
     await process_batch(events)
 
@@ -106,14 +102,8 @@ async def on_partition_initialize(partition_context: PartitionContext) -> None:
     logger.info(f"Partition: {partition_context.partition_id} has been initialized.")
 
 
-async def on_partition_close(
-    partition_context: PartitionContext, reason: CloseReason
-) -> None:
-    logger.warning(
-        "Partition: {} has been closed, reason for closing: {}.".format(
-            partition_context.partition_id, reason
-        )
-    )
+async def on_partition_close(partition_context: PartitionContext, reason: CloseReason) -> None:
+    logger.warning(f"Partition: {partition_context.partition_id} has been closed, reason for closing: {reason}.")
 
 
 async def on_error(partition_context: PartitionContext, error: Exception) -> None:

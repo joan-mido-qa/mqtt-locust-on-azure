@@ -38,9 +38,7 @@ def _generate_mqtt_event_name(event_type: str, qos: int, topic: str) -> str:
     return f"{event_type}:{qos}:{topic}"
 
 
-def _generate_mqtt_error_event_name(
-    event_type: str, qos: int, topic: str, error_code: int
-) -> str:
+def _generate_mqtt_error_event_name(event_type: str, qos: int, topic: str, error_code: int) -> str:
     return f"{event_type}:{error_code}:{qos}:{topic}"
 
 
@@ -230,14 +228,10 @@ class MqttClient(Client):
             #     },
             # )
 
-            pass
-
         else:
             self.environment.events.request.fire(
                 request_type=REQUEST_TYPE,
-                name=_generate_mqtt_event_name(
-                    "publish", message_context.qos, message_context.topic
-                ),
+                name=_generate_mqtt_event_name("publish", message_context.qos, message_context.topic),
                 response_time=(cb_time - message_context.start_time) * 1000,
                 response_length=message_context.payload_size,
                 exception=None,
@@ -342,9 +336,7 @@ class MqttClient(Client):
         if not self.connected.is_set():
             self.environment.events.request.fire(
                 request_type=REQUEST_TYPE,
-                name=_generate_mqtt_event_name(
-                    "publish", message_context.qos, message_context.topic
-                ),
+                name=_generate_mqtt_event_name("publish", message_context.qos, message_context.topic),
                 response_time=0,
                 response_length=0,
                 exception=DeviceDisconnected("Device is not Connected."),
