@@ -1,0 +1,10 @@
+---
+apiVersion: v2
+name: locust-on-k8s
+description: A Helm chart to run Locust.io Performance Test on Kubernetes
+
+type: application
+
+version: 0.0.1
+
+appVersion: 1.0.0

@@ -1,0 +1,11 @@
+{{- $registry := .Values.registry.server -}}
+{{- $username := .Values.registry.user -}}
+{{- $password := .Values.registry.pass -}}
+---
+apiVersion: v1
+data:
+  .dockerconfigjson: {{ printf "{\"auths\": {\"%s\": {\"auth\": \"%s\"}}}" $registry (printf "%s:%s" $username $password | b64enc) | b64enc }}
+kind: Secret
+metadata:
+  name: container-registry
+type: kubernetes.io/dockerconfigjson

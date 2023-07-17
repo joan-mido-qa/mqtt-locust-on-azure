@@ -89,6 +89,60 @@ Uncomment the **cd.yaml** workflow to release the Consumer docker.
 
 Run the [Deploy Consumer](https://github.com/joan-mido-qa/mqtt-locust-on-azure/actions/workflows/deploy_consumer.yaml) workflow to deploy the Consumer to [Azure Container Instances](https://azure.microsoft.com/en-us/products/container-instances/).
 
+# Helm Chart Run
+
+To install the Locust Helm Chart using the CLI:
+
+```bash
+$ helm install locust charts/locust --set registry.user=username --set registry.pass=password --set node.worker.replicas=4 --set runId=docs --set locust.host=test.mqtt.com --set locust.numUsers=500 --set locust.runTime 1800 [...]
+```
+
+Or using a `values.yaml` file:
+
+```bash
+$ helm install locust charts/locust -f values.yaml
+```
+
+```YAML
+---
+registry:
+  user: username
+  pass: password
+
+node:
+  worker:
+    replicas: 2
+
+runId: Docs
+
+locust:
+  host: test.mqtt.com
+  numUsers: 500
+  spawnRate: 5
+  runTime: 1800
+
+influx:
+  host: https://influxdb.com
+  token: INFLUXDB_TOKEN
+  organization: my_organization
+
+consumer:
+  eventhub:
+    name: performance
+    consumerGroup: $Default
+    connectionString: EVENTHUB_CONN_STRING
+  storage:
+    connectionString: STORAGE_CONN_STRING
+  replicas: 2
+```
+
+
+To uninstall the Helm Chart:
+
+```bash
+$ helm uninstall locust
+```
+
 # Report
 
 Import the JSON file from the Grafana folder. [Grafana](https://grafana.com/) uses [InfluxDB](https://www.influxdata.com/) to aggregate the statistics and measure the event ingestion delay time (ms) and the count of the EventHub outgoing messages.
