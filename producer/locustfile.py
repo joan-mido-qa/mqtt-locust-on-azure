@@ -27,7 +27,6 @@ def _(parser: LocustArgumentParser) -> None:
 
 class User(MqttUser):
     def on_start(self) -> None:
-
         self.connect(
             ca_certs="path/to/ca",
             cert_file="path/to/cert",
@@ -39,7 +38,6 @@ class User(MqttUser):
         self.client.publish("/", self.telemetry.encode(), qos=0)
 
     def on_stop(self) -> None:
-
         self.disconnect()
 
     @property

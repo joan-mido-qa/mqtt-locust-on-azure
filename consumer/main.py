@@ -22,12 +22,9 @@ events_queue: list[pd.DataFrame] = []
 
 
 async def write_events(host: str, token: str, org: str) -> None:
-
     while True:
-
         if events_queue:
-
-            dfs, events_queue[:] = events_queue[:], []
+            dfs, events_queue[:] = events_queue.copy(), []
 
             delays = (
                 pd.concat([*dfs])
@@ -62,16 +59,13 @@ async def write_events(host: str, token: str, org: str) -> None:
 
 
 async def process_batch(data: list[EventData]) -> None:
-
     events = Events()
 
     for event in data:
         info = event_info(event)
 
         if info:
-
             if event.enqueued_time and event.raw_amqp_message.annotations:
-
                 enqueues_ts: float = event.raw_amqp_message.annotations.get(b"x-opt-enqueued-time", None)
 
                 # Filter Test Data by ID using Grafana Variables
@@ -92,7 +86,6 @@ async def process_batch(data: list[EventData]) -> None:
 
 
 async def on_event_batch(partition_context: PartitionContext, events: list[EventData]) -> None:
-
     await process_batch(events)
 
     await partition_context.update_checkpoint()

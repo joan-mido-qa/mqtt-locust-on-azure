@@ -4,7 +4,6 @@ import time
 from contextlib import suppress
 from typing import Any
 from typing import NamedTuple
-from typing import Optional
 from uuid import uuid4
 
 from gevent.event import Event
@@ -43,7 +42,6 @@ def _generate_mqtt_error_event_name(event_type: str, qos: int, topic: str, error
 
 
 class PublishedMessageContext(NamedTuple):
-
     qos: int
     topic: str
     start_time: float
@@ -90,9 +88,7 @@ class MqttUser(User):
         self.client.connected.wait(240)
 
     def disconnect(self) -> None:
-
         if self.client.connected.is_set():
-
             self.client.disconnect()
 
         self.client.loop_stop()
@@ -103,10 +99,9 @@ class MqttClient(Client):
         self,
         *args: tuple,
         environment: Environment,
-        client_id: Optional[str] = None,
+        client_id: str | None = None,
         **kwargs: dict,
     ) -> None:
-
         self.client_id = client_id or f"locust-{uuid4()}"
 
         super().__init__(
@@ -236,10 +231,7 @@ class MqttClient(Client):
                 response_length=message_context.payload_size,
                 exception=None,
                 response=None,
-                context={
-                    "client_id": self.client_id,
-                    **message_context._asdict(),
-                },
+                context={"client_id": self.client_id} | message_context._asdict(),
             )
 
     def _on_disconnect_cb(
@@ -321,11 +313,10 @@ class MqttClient(Client):
     def publish(
         self,
         topic: str,
-        payload: Optional[bytes] = None,
+        payload: bytes | None = None,
         qos: int = 1,
         retain: bool = False,
     ) -> None:
-
         message_context = PublishedMessageContext(
             qos=qos,
             topic=topic,
@@ -341,10 +332,7 @@ class MqttClient(Client):
                 response_length=0,
                 exception=DeviceDisconnected("Device is not Connected."),
                 response=None,
-                context={
-                    "client_id": self.client_id,
-                    **message_context._asdict(),
-                },
+                context={"client_id": self.client_id} | message_context._asdict(),
             )
 
             return
@@ -368,10 +356,7 @@ class MqttClient(Client):
                     else f"Publish FAIL with unknown error: {publish_info.rc}",
                 ),
                 response=None,
-                context={
-                    "client_id": self.client_id,
-                    **message_context._asdict(),
-                },
+                context={"client_id": self.client_id} | message_context._asdict(),
             )
         else:
             self._published_messages[publish_info.mid] = message_context
