@@ -1,0 +1,53 @@
+{{- range untilStep 0 (int .Values.consumer.replicas) 1 }}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: eventhub-consumer-{{ . }}
+  labels:
+    {{- include "locust.labels" $ | nindent 4 }}
+    app.midokura.io/name: eventhub-consumer
+spec:
+      imagePullSecrets:
+        - name: container-registry
+      {{- with $.Values.imagePullSecrets }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: eventhub-consumer
+          image: "{{ $.Values.consumer.image.repository }}:{{ $.Values.consumer.image.tag | default $.Chart.AppVersion }}"
+          imagePullPolicy: {{ $.Values.consumer.image.pullPolicy }}
+          env:
+          - name: INFLUXDB_HOST
+            value: {{ $.Values.influx.host }}
+          - name: INFLUXDB_TOKEN
+            value: {{ $.Values.influx.token }}
+          - name: INFLUXDB_ORG
+            value: {{ $.Values.influx.organization }}
+          - name: EVENTHUB_NAME
+            value: {{ $.Values.consumer.eventhub.name }}
+          - name: CONSUMER_GROUP
+            value: {{ $.Values.consumer.eventhub.consumerGroup }}
+          - name: EVENTHUB_CONNECTION_STRING
+            value: {{ $.Values.consumer.eventhub.connectionString }}
+          - name: STORAGE_CONNECTION_STRING
+            value: {{ $.Values.consumer.storage.connectionString }}
+          - name: NUM_PARTITION
+            value: {{ quote . }}
+          - name: TOTAL_PARTITION
+            value: {{ quote $.Values.consumer.replicas }}
+          resources:
+            {{- toYaml $.Values.consumer.resources | nindent 12 }}
+      {{- with $.Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

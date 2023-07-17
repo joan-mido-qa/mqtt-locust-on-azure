@@ -1,0 +1,58 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: master
+  labels:
+    {{- include "locust.labels" . | nindent 4 }}
+    app.midokura.io/name: locust-master
+spec:
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: container-registry
+      {{- with .Values.imagePullSecrets }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: master-node
+          image: "{{ .Values.node.image.repository }}:{{ .Values.node.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.node.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 5557
+              protocol: TCP
+          command: ["locust"]
+          env:
+          - name: LOCUST_LOCUSTFILE
+            value: {{ .Values.locust.fileName }}
+          - name: LOCUST_HEADLESS
+            value: "true"
+          - name: LOCUST_ONLY_SUMMARY
+            value: "true"
+          - name: LOCUST_USERS
+            value: {{ quote .Values.locust.numUsers }}
+          - name: LOCUST_SPAWN_RATE
+            value: {{ quote .Values.locust.spawnRate }}
+          - name: LOCUST_RUN_TIME
+            value: "{{ .Values.locust.runTime }}s"
+          - name: LOCUST_EXPECT_WORKERS
+            value: {{ quote .Values.node.worker.replicas }}
+          - name: LOCUST_MODE_MASTER
+            value: "true"
+          - name: LOCUST_HOST
+            value: {{ .Values.locust.host }}
+          - name: RUN_ID
+            value: {{ .Values.runId }}
+          resources:
+            {{- toYaml .Values.node.master.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

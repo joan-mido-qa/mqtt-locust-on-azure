@@ -1,0 +1,136 @@
+---
+# Default values for run-locust.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+nameOverride: ''
+fullnameOverride: ''
+
+## Optionally specify an array of imagePullSecrets.
+## Secrets must be manually created in the namespace.
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+## e.g:
+## pullSecrets:
+##   - myRegistryKeySecretName
+##
+imagePullSecrets: []
+
+## Custom Locust image registry
+##
+registry:
+  ## Registry Server
+  ##
+  server: ghcr.io
+  ## Registry Server Username
+  ##
+  user: ''
+  ## Registry Server Passowrd
+  ##
+  pass: ''
+
+node:
+  image:
+    repository: ghcr.io/locust-on-azure
+    ## Specify a imagePullPolicy
+    ## ref: https://kubernetes.io/docs/user-guide/images/#pre-pulling-images
+    ##
+    pullPolicy: IfNotPresent
+    tag: ''
+  master:
+    resources: {}
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
+  worker:
+    ## Number of Locust Workers to spawn
+    ##
+    replicas: 2
+    resources: {}
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
+
+## Run ID of the Locust Test
+##
+runId: LocustOnK8s
+
+## Locust Test Configuration
+##
+locust:
+  ## Name of the Locust file
+  ##
+  fileName: locustfile.py
+  ## MQTT Host
+  ##
+  host: ''
+  ## Number of Users to spawn
+  ##
+  numUsers: 100
+  ## Number of Users to spawn each second
+  ##
+  spawnRate: 10
+  ## Locust Time Limit in Seconds
+  ##
+  runTime: 900
+
+## Influx Configuration
+##
+influx:
+  ## InfluxDB Host
+  ##
+  host: ''
+  ## InfluxDB Token
+  ##
+  token: ''
+  ## InfluxDB Organization Name
+  ##
+  organization: ''
+
+consumer:
+  image:
+    repository: ghcr.io/eventhub-consumer
+    ## Specify a imagePullPolicy
+    ## ref: https://kubernetes.io/docs/user-guide/images/#pre-pulling-images
+    ##
+    pullPolicy: IfNotPresent
+    tag: ''
+  eventhub:
+    ## Name of the EventHub
+    ##
+    name: ''
+    ## Name of the Consumer Group to consume from
+    ##
+    consumerGroup: ''
+    ## EventHub Connection String with Read Permission
+    ##
+    connectionString: ''
+  storage:
+    ## Azure Blob Storage Connection String to save the Checkpoints
+    ##
+    connectionString: ''
+  ## Number of the EventHub Consumer Partitions
+  ##
+  replicas: 4
+  resources: {}
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
+
+## Locust Test PODs Selctors, Tolerations and Affinity
+##
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+podAnnotations: {}

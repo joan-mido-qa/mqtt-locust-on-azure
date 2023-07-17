@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: master-service
+  labels:
+    {{- include "locust.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5557
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "locust.selectorLabels" . | nindent 4 }}
+    app.midokura.io/name: locust-master
