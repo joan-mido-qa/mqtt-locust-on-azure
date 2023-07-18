@@ -313,8 +313,8 @@
       {
         "current": {
           "selected": false,
-          "text": "Midokura-MQTT-2022-12-24T14:27:18",
-          "value": "Midokura-MQTT-2022-12-24T14:27:18"
+          "text": "MQTT-2022-12-24T14:27:18",
+          "value": "MQTT-2022-12-24T14:27:18"
         },
         "datasource": {
           "type": "influxdb",
@@ -330,7 +330,7 @@
         "options": [],
         "query": "import \"influxdata/influxdb/schema\"\n\nschema.tagValues(bucket: \"locust\", tag: \"run_id\", start: v.timeRangeStart, stop: v.timeRangeStop)",
         "refresh": 2,
-        "regex": "/Midokura/",
+        "regex": "/MQTT/",
         "skipUrlSync": false,
         "sort": 2,
         "type": "query"

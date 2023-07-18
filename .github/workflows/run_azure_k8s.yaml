@@ -1,0 +1,217 @@
+---
+name: Run Locust On Azure
+
+on:
+  workflow_call:
+    inputs:
+      run-id:
+        description: Define a prefix Run ID for the test execution.
+        required: true
+        type: string
+      run-time:
+        description: Stop after the specified amount of seconds.
+        required: true
+        type: number
+      spawn-rate:
+        description: The rate per second in which users are spawned.
+        required: true
+        type: number
+      num-users:
+        description: Number of concurrent Locust Users.
+        required: true
+        type: number
+      mqtt-host:
+        description: MQTT Broker URL.
+        required: true
+        type: string
+      eventhub-name:
+        description: Azure EventHub Name.
+        required: true
+        type: string
+      num-users-per-worker:
+        description: The number of mqtt clients to span on each locust worker.
+        required: true
+        type: number
+    secrets:
+      client-id:
+        description: Azure Service Principal ID
+        required: true
+      client-secret:
+        description: Azure Service Principal Secret
+        required: true
+      subscription-id:
+        description: Azure Staging Subscription ID
+        required: true
+      tenant-id:
+        description: Azure Tenant ID
+        required: true
+      ghcr-username:
+        description: GHCR RW Username
+        required: true
+      ghcr-password:
+        description: GHCR RW Password
+        required: true
+      storage-connection-string:
+        description: Eventhub Checkpoint Storage Connection String
+        required: true
+      eventhub-connection-string:
+        description: Eventhub Connection String
+        required: true
+      influx-token:
+        description: InfluxDB Connection Token
+        required: true
+
+jobs:
+  deploy-locust-to-aks:
+    name: Deploy Locust & Consumer
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Date and Time
+      run: echo "NOW=$(date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_ENV
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.10
+
+    - name: Workers Number
+      env:
+        NUM_USERS: ${{ inputs.num-users }}
+        NUM_USERS_PER_WORKER: ${{ inputs.num-users-per-worker }}
+      run: |
+        MAX_REMINDER=$((NUM_USERS_PER_WORKER - 1))
+        echo "WORKERS=$(( (NUM_USERS + NUM_DEVICES + MAX_REMINDER) / NUM_USERS_PER_WORKER ))" >> $GITHUB_ENV
+
+    - name: Install Azure CLI
+      run: |
+        if ! which az
+        then
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+        fi
+
+    - name: Azure Login
+      uses: Azure/login@v1
+      with:
+        creds: '{"clientId":"${{ secrets.client-id }}","clientSecret":"${{ secrets.client-secret }}","subscriptionId":"${{ secrets.subscription-id }}","tenantId":"${{
+          secrets.tenant-id }}"}'
+
+    - name: Set QA K8s Context
+      uses: azure/aks-set-context@v3
+      with:
+        resource-group: azure-resource-group
+        cluster-name: aks-name
+
+    - name: Install Helm
+      uses: azure/setup-helm@v3
+
+    - name: Release Name
+      run: |
+        echo "RELEASE_NAME=performance-${{ github.run_id }}-a${{ github.run_attempt }}" >> $GITHUB_ENV
+
+    - name: Set Timeout
+      env:
+        RUN_TIME: ${{ inputs.run-time }}
+      run: |
+        echo "TIMEOUT=$(($RUN_TIME + 450))" >> $GITHUB_ENV
+
+    - name: Run Locust & Consumer
+      run: |
+        helm install ${{ env.RELEASE_NAME }} ./run-locust -n ${{ env.RELEASE_NAME }} --wait --timeout ${{ env.TIMEOUT }}s \
+          --set registry.user="${{secrets.ghcr-username}}" \
+          --set registry.pass="${{secrets.ghcr-password}}" \
+          --set node.worker.replicas=${{ env.WORKERS }} \
+          --set locust.host=${{ inputs.mqtt-host }} \
+          --set locust.spawnRate=${{ inputs.spawn-rate }} \
+          --set locust.runTime=${{ inputs.run-time }} \
+          --set influx.host="https://influxdb.com" \
+          --set influx.token=${{ secrets.influx-token }} \
+          --set influx.organization="aFakeOrganization" \
+          --set consumer.eventhub.name="${{inputs.eventhub-name}}" \
+          --set consumer.eventhub.consumerGroup="$Default" \
+          --set consumer.eventhub.connectionString="${{secrets.eventhub-connection-string}}" \
+          --set consumer.storage.connectionString="${{secrets.storage-connection-string}}" \
+          --create-namespace || true
+
+    - name: Set Exit Code
+      if: always()
+      run: |
+        #!/bin/bash
+
+        if ! which kubectl
+        then
+          curl -LO "https://dl.k8s.io/release/v1.25.2/bin/linux/amd64/kubectl"
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+        fi
+        kubectl version --output=json
+        x=0
+
+        while [ $x -le 600 ]
+        do
+            echo "> Checking Status ..."
+
+            if kubectl get namespace "${{ env.RELEASE_NAME }}" >/dev/null 2>&1; then
+              echo "> Namespace "${{ env.RELEASE_NAME }}" exists, continue checking status"
+            else
+              echo "> Namespace "${{ env.RELEASE_NAME }}" does not exist"
+              echo "> Locust Failed"
+              exit 1
+            fi
+
+            exit_code=$(kubectl get pod master -n ${{ env.RELEASE_NAME }} -ojson | jq .status.containerStatuses[0].state.terminated.exitCode)
+
+            if [ $exit_code = "null" ]; then
+                echo "> Locust Running ..."
+
+            elif [ $exit_code = 0 ]; then
+                echo "> Locust Passed"
+
+                exit 0
+
+            elif [ $exit_code = 1 ]; then
+                echo "> Locust Failed"
+
+                exit 1
+
+            elif [ $exit_code = 2 ]; then
+                echo "> Locust Unexpected Quit"
+
+                exit 1
+
+            fi
+
+            x=$(( $x + 5 ))
+
+            echo "> Wait 5 seconds ..."
+
+            sleep 5
+
+        done
+
+        echo "> Timeout"
+
+        exit 1
+
+    - name: Save Logs
+      if: always()
+      run: |
+        mkdir -p logs
+
+        kubectl logs -l app.kubernetes.io/instance=${{ env.RELEASE_NAME }},app.locust.io/name=locust-master -c master-node --tail=-1 -n ${{ env.RELEASE_NAME }} > ./logs/master-logs.log
+        kubectl logs -l app.kubernetes.io/instance=${{ env.RELEASE_NAME }},app.locust.io/name=locust-worker --tail=-1 --all-containers --ignore-errors -n ${{ env.RELEASE_NAME }} > ./logs/worker-logs.log
+        kubectl logs -l app.kubernetes.io/instance=${{ env.RELEASE_NAME }},app.locust.io/name=eventhub-consumer --tail=-1 --all-containers --ignore-errors -n ${{ env.RELEASE_NAME }} > ./logs/eventhub-logs.log
+
+    - name: Upload Logs
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: logs
+        path: ./logs/
+
+    - name: Clean Locust & Consumer
+      if: always()
+      run: |
+        helm uninstall ${{ env.RELEASE_NAME }} -n ${{ env.RELEASE_NAME }}
+        kubectl delete ns ${{ env.RELEASE_NAME }}

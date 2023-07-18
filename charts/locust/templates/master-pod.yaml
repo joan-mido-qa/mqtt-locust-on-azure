@@ -4,7 +4,7 @@ metadata:
   name: master
   labels:
     {{- include "locust.labels" . | nindent 4 }}
-    app.midokura.io/name: locust-master
+    app.locust.io/name: locust-master
 spec:
       restartPolicy: Never
       imagePullSecrets:

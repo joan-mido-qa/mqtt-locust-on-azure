@@ -13,4 +13,4 @@ spec:
       name: http
   selector:
     {{- include "locust.selectorLabels" . | nindent 4 }}
-    app.midokura.io/name: locust-master
+    app.locust.io/name: locust-master

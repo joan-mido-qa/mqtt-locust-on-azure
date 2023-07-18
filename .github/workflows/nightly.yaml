@@ -1,0 +1,29 @@
+---
+name: Nightly Run MQTT Performance Test
+
+on:
+  schedule:
+  - cron: 0 1 * * *
+
+jobs:
+  deploy-locust-to-aks:
+    name: Deploy Locust to AKS
+    uses: ./.github/workflows/run_azure_k8s.yaml
+    with:
+      run-id: Nightly
+      run-time: 3600
+      spawn-rate: 10
+      num-users: 10
+      num-users-per-worker: 300
+      mqtt-host: mqtt.test.com
+      eventhub-name: eventhub
+    secrets:
+      client-id: SECRET_AZURE_CLIENT_ID
+      client-secret: SECRET_AZURE_CLIENT_SECRET
+      subscription-id: SECRET_AZURE_SUBSCRIPTION_ID
+      tenant-id: SECRET_AZURE_TENANT_ID
+      ghcr-username: SECRET_GHCR_USERNAME
+      ghcr-password: SECRET_GHCR_PASSWORD
+      storage-connection-string: SECRET_STORAGE_CONN_STRING
+      eventhub-connection-string: SECRET_EVENTHUB_CONN_STRING
+      influx-token: SECRET_INFLUXDB_TOKEN

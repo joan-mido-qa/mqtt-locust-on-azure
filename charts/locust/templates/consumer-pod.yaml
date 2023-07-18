@@ -6,7 +6,7 @@ metadata:
   name: eventhub-consumer-{{ . }}
   labels:
     {{- include "locust.labels" $ | nindent 4 }}
-    app.midokura.io/name: eventhub-consumer
+    app.locust.io/name: eventhub-consumer
 spec:
       imagePullSecrets:
         - name: container-registry

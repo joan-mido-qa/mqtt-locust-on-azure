@@ -89,9 +89,9 @@ Uncomment the **cd.yaml** workflow to release the Consumer docker.
 
 Run the [Deploy Consumer](https://github.com/joan-mido-qa/mqtt-locust-on-azure/actions/workflows/deploy_consumer.yaml) workflow to deploy the Consumer to [Azure Container Instances](https://azure.microsoft.com/en-us/products/container-instances/).
 
-# Helm Chart Run
+# Helm Chart
 
-To install the Locust Helm Chart using the CLI:
+Install the Locust Helm Chart using the CLI:
 
 ```bash
 $ helm install locust charts/locust --set registry.user=username --set registry.pass=password --set node.worker.replicas=4 --set runId=docs --set locust.host=test.mqtt.com --set locust.numUsers=500 --set locust.runTime 1800 [...]
@@ -137,10 +137,45 @@ consumer:
 ```
 
 
-To uninstall the Helm Chart:
+Uninstall the Helm Chart:
 
 ```bash
 $ helm uninstall locust
+```
+
+## Reusable Workflow
+
+Use the [Run Azure K8s](https://github.com/joan-mido-qa/mqtt-locust-on-azure/actions/workflows/run_azure_k8s.yaml) workflow to schedule or automatize your tests:
+
+```yaml
+---
+name: Staging Run MQTT Performance Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy-locust-to-aks:
+    name: Deploy Locust to AKS
+    uses: ./.github/workflows/run_azure_k8s.yaml
+    with:
+      run-id: Staging
+      run-time: 3600
+      spawn-rate: 10
+      num-users: 10
+      num-users-per-worker: 300
+      mqtt-host: mqtt.staging.com
+      eventhub-name: eventhub-staging
+    secrets:
+      client-id: SECRET_AZURE_CLIENT_ID
+      client-secret: SECRET_AZURE_CLIENT_SECRET
+      subscription-id: SECRET_AZURE_SUBSCRIPTION_ID
+      tenant-id: SECRET_AZURE_TENANT_ID
+      ghcr-username: SECRET_GHCR_USERNAME
+      ghcr-password: SECRET_GHCR_PASSWORD
+      storage-connection-string: SECRET_STORAGE_CONN_STRING
+      eventhub-connection-string: SECRET_EVENTHUB_CONN_STRING
+      influx-token: SECRET_INFLUXDB_TOKEN
 ```
 
 # Report

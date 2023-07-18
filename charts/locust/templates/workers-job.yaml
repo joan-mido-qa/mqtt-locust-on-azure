@@ -19,7 +19,7 @@ spec:
       {{- end }}
       labels:
         {{- include "locust.selectorLabels" . | nindent 8 }}
-        app.midokura.io/name: locust-worker
+        app.locust.io/name: locust-worker
     spec:
       restartPolicy: Never
       imagePullSecrets:
