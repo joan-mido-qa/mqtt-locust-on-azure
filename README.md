@@ -12,7 +12,10 @@ Finally, [Grafana](https://grafana.com/) reads the aggregated statistics to disp
     <img src="assets/test-architecture.png" width="550"/>
 </p>
 <br/>
-<br/>
+
+## Disclaimer
+
+This repository contains an example. You might need to adapt the code and workflows to your requirements and configuration. It might not work as it is.
 
 # Producer
 
@@ -199,3 +202,7 @@ The ingestion delay time is measured as the event enqueue time minus the event s
 ### Received Telemetries
 
 Azure EventHub outgoing messages count.
+
+# More Info
+
+- https://hackernoon.com/iot-performance-load-testing-with-locust-and-azure
