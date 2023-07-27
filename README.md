@@ -206,3 +206,4 @@ Azure EventHub outgoing messages count.
 # More Info
 
 - https://hackernoon.com/iot-performance-load-testing-with-locust-and-azure
+- https://hackernoon.com/iot-performance-load-testing-with-locust-and-azure-continuous-delivery
